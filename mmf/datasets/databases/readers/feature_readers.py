@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
+import math
 import os
 import pickle
 from typing import Any
@@ -103,6 +104,10 @@ class FasterRCNNFeatureReader:
 class CHWFeatureReader:
     def __init__(self, max_features=None):
         self.max_features = max_features
+        if self.max_features:
+            patch_dim = math.ceil(math.sqrt(self.max_features))
+            self.img_h = patch_dim
+            self.img_w = patch_dim
 
     def read(self, image_feat_path):
         feat = load_feat(image_feat_path, convert_to_tensor=True)
@@ -110,8 +115,8 @@ class CHWFeatureReader:
         b, c, h, w = feat.shape
         if self.max_features:
             feat = feat.view(b, c, -1)
-            padded_feat = torch.zeros((b, c, self.max_features), dtype=torch.float)
-            padded_feat[:, :, : h * w] = feat
+            padded_feat = torch.zeros((b, c, self.img_h, self.img_w), dtype=torch.float)
+            padded_feat[:, :, :h, :w] = feat
             feat = padded_feat.unsqueeze(-1)
         feat = feat.squeeze(0)
         return feat, None
